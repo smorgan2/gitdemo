@@ -10,9 +10,70 @@
 /* forward declarations */
 static void printHelp();
 
+
+/** trim final newline, in place */
+char *trimNewline(char *string)
+{
+	int end = strlen(string) - 1;
+
+	if (end >= 0 && string[end] == '\n')
+		string[end] = 0;
+
+	return string;
+}
+
+int printList(FILE *ofp, LLNode *listp)
+{
+	for ( ; listp != NULL; listp = listp->next)
+	{
+		fprintf(ofp, "%03d: %s\n", listp->data.number, listp->data.string);
+	}
+	return (!ferror(ofp));
+}
+
+/*
+ * load the data in the sData structure into a list, in order
+ */
 int loadData(LLNode **list, char *filename, int verbose, int reverse)
 {
+	char linebuffer[BUFSIZ];
+	MyData data;
+	FILE *ifp;
+	int lineNumber = 0;
+
+	ifp = fopen(filename, "r");
+	if (ifp == NULL)
+	{
+		fprintf(stderr, "Cannot open file '%s' : %s", filename, strerror(errno));
+		return -1;
+	}
+
+	while (fgets(linebuffer, BUFSIZ, ifp) != NULL)
+	{
+		lineNumber++;
+
+		data.string = strdup(trimNewline(linebuffer));
+		data.number = lineNumber;
+
+		if (verbose)
+			printf("Loaded [%s]\n", data.string);
+
+		if (reverse)
+			(*list) = llAppend((*list), llNewNode(&data));
+		else 
+			(*list) = llPrepend((*list), llNewNode(&data));
+
+		if (verbose > 1)
+		{
+			printf("List contents:\n");
+			printList(stdout, (*list));
+		}
+	}
+
+	return lineNumber;
 }
+
+
 
 int main(int argc, char **argv)
 {
